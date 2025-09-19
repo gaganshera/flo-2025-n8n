@@ -1,0 +1,955 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{$json.body.sender.login}}/{{$json.body.repository.name}}/pulls/{{$json.body.number}}/files",
+        "options": {}
+      },
+      "id": "3841d884-afb2-491a-9fe3-304987b8b114",
+      "name": "Get file's Diffs from PR1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -192,
+        -128
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "options": {}
+      },
+      "id": "144239a3-867a-4c8c-98dd-f128a3ce6c97",
+      "name": "OpenAI Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        528,
+        96
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "2qzINS0AaZEy7Bad",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_message }}",
+        "options": {}
+      },
+      "id": "58fb18be-2ba9-4a5a-a757-e89f57046c0c",
+      "name": "Code Review Agent1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        544,
+        -128
+      ],
+      "typeVersion": 1.9
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "gaganshera",
+          "mode": "list",
+          "cachedResultName": "gaganshera",
+          "cachedResultUrl": "https://github.com/gaganshera"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "node-app",
+          "mode": "list",
+          "cachedResultName": "node-app",
+          "cachedResultUrl": "https://github.com/gaganshera/node-app"
+        },
+        "filePath": "coding-best-practices.md",
+        "asBinaryProperty": false,
+        "additionalParameters": {}
+      },
+      "type": "n8n-nodes-base.githubTool",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        96
+      ],
+      "id": "eeb68ec4-4365-4221-b786-6bf667fb88b0",
+      "name": "Pass Coding best practices to AI",
+      "webhookId": "1f82a46d-e0d2-46b8-98f3-43e4b43fa9a6",
+      "credentials": {
+        "githubApi": {
+          "id": "vftDtHJdM32u3xon",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "review",
+        "owner": {
+          "__rl": true,
+          "value": "gaganshera",
+          "mode": "list",
+          "cachedResultName": "gaganshera",
+          "cachedResultUrl": "https://github.com/gaganshera"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "node-app",
+          "mode": "list",
+          "cachedResultName": "node-app",
+          "cachedResultUrl": "https://github.com/gaganshera/node-app"
+        },
+        "pullRequestNumber": "={{ $('PR Trigger').first().json.body.number ",
+        "event": "comment",
+        "body": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        848,
+        -128
+      ],
+      "id": "80ef7830-4378-47e5-91b7-b2ff9a9e0dbf",
+      "name": "Comment review on PR",
+      "webhookId": "4ccfd77d-d048-400c-96fb-e4fa994b15b7",
+      "credentials": {
+        "githubApi": {
+          "id": "vftDtHJdM32u3xon",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.pull_request.commits_url }}",
+        "options": {}
+      },
+      "id": "c0a4e999-2cab-438d-a6be-f9ac94fa8386",
+      "name": "Get commits and jira ids from PR",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -192,
+        -336
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "options": {
+          "jql": "=project='SCRUM' and issue in ('{{ $json.jiraIDs }}')"
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        176,
+        -336
+      ],
+      "id": "b6793703-108a-4f2c-b5fc-58aaa12e3ee4",
+      "name": "Get many issues",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "mim79erlmQiosLfw",
+          "name": "Jira SW Cloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        176,
+        -128
+      ],
+      "id": "84d024c0-401d-4be1-a9e4-565d7db89b9b",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst items = $input.all();\nconst jiraIDs = [\"SCRUM-1\", \"SCRUM-2\"];\n\nitems.map(itemData => {\n  const item = itemData.json;\n  const commit = item.commit;\n  console.log(commit)\n  const message = commit.message;\n\n  // Match something like \"ABC-123\", case-insensitive, from the beginning\n  const match = message.match(/([A-Z]+-\\d+)/i);\n\n  const jiraId = match ? match[0].toUpperCase() : null;\n  if(jiraId) jiraIDs.push(jiraId)\n});\n\nreturn {\n    json: {\n      jiraIDs: jiraIDs.join(\"','\")\n    }\n  };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        -336
+      ],
+      "id": "51e7a678-18d6-4144-91f3-8b973aeaf9ba",
+      "name": "Format Jira IDs"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all incoming items from the JIRA node.\nconst allItems = $input.all();\nlet allTasks = \"\";\nlet count = 0;\n\n// Use .map() to loop through each item and transform it.\nallItems.map(item => {\n  ++count;\n  // The full JIRA issue data for the current item in the loop\n  const issue = item.json;\n\n  // Extract the specific fields you need for this issue.\n  // Use optional chaining (?.) to prevent errors if a field is missing.\n  const jiraId = issue.key; // The JIRA ID (e.g., \"MS-6\")\n  const summary = issue.fields?.summary;\n  const description = issue.fields?.description;\n  allTasks += `Task ${count}:\n  Summary ${count}: ${summary}\n  Description ${count}: ${description}\n  \n  `\n});\n\nreturn {\n  json: {allTasks}\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        -336
+      ],
+      "id": "8214d5f9-1acd-481b-bf80-21964be7c903",
+      "name": "Extract issue description"
+    },
+    {
+      "parameters": {
+        "jsCode": "const files = $input.all().map(item => item.json);\n\nlet diffs = '';\n\nfor (const file of files) {\n  diffs += `### File : ${file.filename}\\n\\n`;\n\n  if (file.patch) {\n\n    const safePatch = file.patch.replace(/```/g, \"''\");\n\n    diffs += \"```diff\\n\";\n    diffs += safePatch;\n    diffs += \"\\n```\\n\";\n  } else {\n    diffs += \"_No patch available (probably binary file)._\";\n  }\n\n  diffs += \"\\n---\\n\\n\";\n}\n\nreturn [\n  {\n    json: {\n      diffs\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        -128
+      ],
+      "id": "853f2274-58de-41d4-9e90-973ba7f1716a",
+      "name": "Format diffs"
+    },
+    {
+      "parameters": {
+        "jsCode": "const userMessage = `\nYou are a senior developer. \nGo through these jira tasks:\n${$input.first().json.allTasks}\n\nUsing the above information, please review the following code changes in these files:\n${$input.first().json.diffs}\n\n---\n\nYour mission:\n\n- Review the proposed code changes file by file and by significant modification.\n\n- Review how each jira task is aligned with the code changes, comment if you think some task is not completed.\n\n- Remember to check best coding practices from the attached context\n\n- Generate inline comments on the relevant lines of code.\n\n- Ignore files without patches.\n\n- Do not repeat the code snippet or the filename.\n\n- Write the comments directly, without introducing the context.\n`;\n\nreturn [\n  {\n    json: {\n      user_message: userMessage.trim()\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        -128
+      ],
+      "id": "ee1ae67f-007f-4ee8-9900-3a25959a96bd",
+      "name": "Create Prompt"
+    },
+    {
+      "parameters": {
+        "owner": {
+          "__rl": true,
+          "value": "gaganshera",
+          "mode": "list",
+          "cachedResultName": "gaganshera",
+          "cachedResultUrl": "https://github.com/gaganshera"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "node-app",
+          "mode": "list",
+          "cachedResultName": "node-app",
+          "cachedResultUrl": "https://github.com/gaganshera/node-app"
+        },
+        "events": [
+          "pull_request"
+        ],
+        "options": {}
+      },
+      "id": "24100111-5375-4aad-adfc-67b67ae81791",
+      "name": "PR Trigger",
+      "type": "n8n-nodes-base.githubTrigger",
+      "position": [
+        -464,
+        -240
+      ],
+      "webhookId": "925e8593-7c73-4e7a-b65c-3c98372f02c5",
+      "notesInFlow": false,
+      "typeVersion": 1,
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "retryOnFail": false,
+      "credentials": {
+        "githubApi": {
+          "id": "vftDtHJdM32u3xon",
+          "name": "GitHub account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Get file's Diffs from PR1": {
+      "main": [
+        [
+          {
+            "node": "Format diffs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Code Review Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Review Agent1": {
+      "main": [
+        [
+          {
+            "node": "Comment review on PR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass Coding best practices to AI": {
+      "ai_tool": [
+        [
+          {
+            "node": "Code Review Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comment review on PR": {
+      "main": [
+        []
+      ]
+    },
+    "Get commits and jira ids from PR": {
+      "main": [
+        [
+          {
+            "node": "Format Jira IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many issues": {
+      "main": [
+        [
+          {
+            "node": "Extract issue description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Create Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Jira IDs": {
+      "main": [
+        [
+          {
+            "node": "Get many issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract issue description": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format diffs": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Create Prompt": {
+      "main": [
+        [
+          {
+            "node": "Code Review Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PR Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get file's Diffs from PR1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get commits and jira ids from PR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "PR Trigger": [
+      {
+        "body": {
+          "action": "closed",
+          "number": 18,
+          "pull_request": {
+            "url": "https://api.github.com/repos/gaganshera/node-app/pulls/18",
+            "id": 2787186610,
+            "node_id": "PR_kwDOEM_50c6mIRey",
+            "html_url": "https://github.com/gaganshera/node-app/pull/18",
+            "diff_url": "https://github.com/gaganshera/node-app/pull/18.diff",
+            "patch_url": "https://github.com/gaganshera/node-app/pull/18.patch",
+            "issue_url": "https://api.github.com/repos/gaganshera/node-app/issues/18",
+            "number": 18,
+            "state": "closed",
+            "locked": false,
+            "title": "terraform",
+            "user": {
+              "login": "gaganshera",
+              "id": 7510079,
+              "node_id": "MDQ6VXNlcjc1MTAwNzk=",
+              "avatar_url": "https://avatars.githubusercontent.com/u/7510079?v=4",
+              "gravatar_id": "",
+              "url": "https://api.github.com/users/gaganshera",
+              "html_url": "https://github.com/gaganshera",
+              "followers_url": "https://api.github.com/users/gaganshera/followers",
+              "following_url": "https://api.github.com/users/gaganshera/following{/other_user}",
+              "gists_url": "https://api.github.com/users/gaganshera/gists{/gist_id}",
+              "starred_url": "https://api.github.com/users/gaganshera/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/gaganshera/subscriptions",
+              "organizations_url": "https://api.github.com/users/gaganshera/orgs",
+              "repos_url": "https://api.github.com/users/gaganshera/repos",
+              "events_url": "https://api.github.com/users/gaganshera/events{/privacy}",
+              "received_events_url": "https://api.github.com/users/gaganshera/received_events",
+              "type": "User",
+              "user_view_type": "public",
+              "site_admin": false
+            },
+            "body": null,
+            "created_at": "2025-08-30T23:51:59Z",
+            "updated_at": "2025-09-07T22:35:05Z",
+            "closed_at": "2025-09-07T22:35:05Z",
+            "merged_at": null,
+            "merge_commit_sha": "a91244365bf56ec4fdcc7e66879098e5af0355c7",
+            "assignee": null,
+            "assignees": [],
+            "requested_reviewers": [],
+            "requested_teams": [],
+            "labels": [],
+            "milestone": null,
+            "draft": false,
+            "commits_url": "https://api.github.com/repos/gaganshera/node-app/pulls/18/commits",
+            "review_comments_url": "https://api.github.com/repos/gaganshera/node-app/pulls/18/comments",
+            "review_comment_url": "https://api.github.com/repos/gaganshera/node-app/pulls/comments{/number}",
+            "comments_url": "https://api.github.com/repos/gaganshera/node-app/issues/18/comments",
+            "statuses_url": "https://api.github.com/repos/gaganshera/node-app/statuses/e248c840026b2e0989dfc42c67f6f4a31f34ee82",
+            "head": {
+              "label": "gaganshera:terraform-demo-without-delete",
+              "ref": "terraform-demo-without-delete",
+              "sha": "e248c840026b2e0989dfc42c67f6f4a31f34ee82",
+              "user": {
+                "login": "gaganshera",
+                "id": 7510079,
+                "node_id": "MDQ6VXNlcjc1MTAwNzk=",
+                "avatar_url": "https://avatars.githubusercontent.com/u/7510079?v=4",
+                "gravatar_id": "",
+                "url": "https://api.github.com/users/gaganshera",
+                "html_url": "https://github.com/gaganshera",
+                "followers_url": "https://api.github.com/users/gaganshera/followers",
+                "following_url": "https://api.github.com/users/gaganshera/following{/other_user}",
+                "gists_url": "https://api.github.com/users/gaganshera/gists{/gist_id}",
+                "starred_url": "https://api.github.com/users/gaganshera/starred{/owner}{/repo}",
+                "subscriptions_url": "https://api.github.com/users/gaganshera/subscriptions",
+                "organizations_url": "https://api.github.com/users/gaganshera/orgs",
+                "repos_url": "https://api.github.com/users/gaganshera/repos",
+                "events_url": "https://api.github.com/users/gaganshera/events{/privacy}",
+                "received_events_url": "https://api.github.com/users/gaganshera/received_events",
+                "type": "User",
+                "user_view_type": "public",
+                "site_admin": false
+              },
+              "repo": {
+                "id": 282065361,
+                "node_id": "MDEwOlJlcG9zaXRvcnkyODIwNjUzNjE=",
+                "name": "node-app",
+                "full_name": "gaganshera/node-app",
+                "private": false,
+                "owner": {
+                  "login": "gaganshera",
+                  "id": 7510079,
+                  "node_id": "MDQ6VXNlcjc1MTAwNzk=",
+                  "avatar_url": "https://avatars.githubusercontent.com/u/7510079?v=4",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/gaganshera",
+                  "html_url": "https://github.com/gaganshera",
+                  "followers_url": "https://api.github.com/users/gaganshera/followers",
+                  "following_url": "https://api.github.com/users/gaganshera/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/gaganshera/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/gaganshera/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/gaganshera/subscriptions",
+                  "organizations_url": "https://api.github.com/users/gaganshera/orgs",
+                  "repos_url": "https://api.github.com/users/gaganshera/repos",
+                  "events_url": "https://api.github.com/users/gaganshera/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/gaganshera/received_events",
+                  "type": "User",
+                  "user_view_type": "public",
+                  "site_admin": false
+                },
+                "html_url": "https://github.com/gaganshera/node-app",
+                "description": null,
+                "fork": false,
+                "url": "https://api.github.com/repos/gaganshera/node-app",
+                "forks_url": "https://api.github.com/repos/gaganshera/node-app/forks",
+                "keys_url": "https://api.github.com/repos/gaganshera/node-app/keys{/key_id}",
+                "collaborators_url": "https://api.github.com/repos/gaganshera/node-app/collaborators{/collaborator}",
+                "teams_url": "https://api.github.com/repos/gaganshera/node-app/teams",
+                "hooks_url": "https://api.github.com/repos/gaganshera/node-app/hooks",
+                "issue_events_url": "https://api.github.com/repos/gaganshera/node-app/issues/events{/number}",
+                "events_url": "https://api.github.com/repos/gaganshera/node-app/events",
+                "assignees_url": "https://api.github.com/repos/gaganshera/node-app/assignees{/user}",
+                "branches_url": "https://api.github.com/repos/gaganshera/node-app/branches{/branch}",
+                "tags_url": "https://api.github.com/repos/gaganshera/node-app/tags",
+                "blobs_url": "https://api.github.com/repos/gaganshera/node-app/git/blobs{/sha}",
+                "git_tags_url": "https://api.github.com/repos/gaganshera/node-app/git/tags{/sha}",
+                "git_refs_url": "https://api.github.com/repos/gaganshera/node-app/git/refs{/sha}",
+                "trees_url": "https://api.github.com/repos/gaganshera/node-app/git/trees{/sha}",
+                "statuses_url": "https://api.github.com/repos/gaganshera/node-app/statuses/{sha}",
+                "languages_url": "https://api.github.com/repos/gaganshera/node-app/languages",
+                "stargazers_url": "https://api.github.com/repos/gaganshera/node-app/stargazers",
+                "contributors_url": "https://api.github.com/repos/gaganshera/node-app/contributors",
+                "subscribers_url": "https://api.github.com/repos/gaganshera/node-app/subscribers",
+                "subscription_url": "https://api.github.com/repos/gaganshera/node-app/subscription",
+                "commits_url": "https://api.github.com/repos/gaganshera/node-app/commits{/sha}",
+                "git_commits_url": "https://api.github.com/repos/gaganshera/node-app/git/commits{/sha}",
+                "comments_url": "https://api.github.com/repos/gaganshera/node-app/comments{/number}",
+                "issue_comment_url": "https://api.github.com/repos/gaganshera/node-app/issues/comments{/number}",
+                "contents_url": "https://api.github.com/repos/gaganshera/node-app/contents/{+path}",
+                "compare_url": "https://api.github.com/repos/gaganshera/node-app/compare/{base}...{head}",
+                "merges_url": "https://api.github.com/repos/gaganshera/node-app/merges",
+                "archive_url": "https://api.github.com/repos/gaganshera/node-app/{archive_format}{/ref}",
+                "downloads_url": "https://api.github.com/repos/gaganshera/node-app/downloads",
+                "issues_url": "https://api.github.com/repos/gaganshera/node-app/issues{/number}",
+                "pulls_url": "https://api.github.com/repos/gaganshera/node-app/pulls{/number}",
+                "milestones_url": "https://api.github.com/repos/gaganshera/node-app/milestones{/number}",
+                "notifications_url": "https://api.github.com/repos/gaganshera/node-app/notifications{?since,all,participating}",
+                "labels_url": "https://api.github.com/repos/gaganshera/node-app/labels{/name}",
+                "releases_url": "https://api.github.com/repos/gaganshera/node-app/releases{/id}",
+                "deployments_url": "https://api.github.com/repos/gaganshera/node-app/deployments",
+                "created_at": "2020-07-23T22:04:49Z",
+                "updated_at": "2025-08-30T23:28:29Z",
+                "pushed_at": "2025-09-07T22:34:34Z",
+                "git_url": "git://github.com/gaganshera/node-app.git",
+                "ssh_url": "git@github.com:gaganshera/node-app.git",
+                "clone_url": "https://github.com/gaganshera/node-app.git",
+                "svn_url": "https://github.com/gaganshera/node-app",
+                "homepage": null,
+                "size": 290,
+                "stargazers_count": 0,
+                "watchers_count": 0,
+                "language": "JavaScript",
+                "has_issues": true,
+                "has_projects": true,
+                "has_downloads": true,
+                "has_wiki": true,
+                "has_pages": false,
+                "has_discussions": false,
+                "forks_count": 1,
+                "mirror_url": null,
+                "archived": false,
+                "disabled": false,
+                "open_issues_count": 2,
+                "license": null,
+                "allow_forking": true,
+                "is_template": false,
+                "web_commit_signoff_required": false,
+                "topics": [],
+                "visibility": "public",
+                "forks": 1,
+                "open_issues": 2,
+                "watchers": 0,
+                "default_branch": "master",
+                "allow_squash_merge": true,
+                "allow_merge_commit": true,
+                "allow_rebase_merge": true,
+                "allow_auto_merge": false,
+                "delete_branch_on_merge": false,
+                "allow_update_branch": false,
+                "use_squash_pr_title_as_default": false,
+                "squash_merge_commit_message": "COMMIT_MESSAGES",
+                "squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+                "merge_commit_message": "PR_TITLE",
+                "merge_commit_title": "MERGE_MESSAGE"
+              }
+            },
+            "base": {
+              "label": "gaganshera:master",
+              "ref": "master",
+              "sha": "5704d3264c61b5cc9cde5758803de5d26bb2b26b",
+              "user": {
+                "login": "gaganshera",
+                "id": 7510079,
+                "node_id": "MDQ6VXNlcjc1MTAwNzk=",
+                "avatar_url": "https://avatars.githubusercontent.com/u/7510079?v=4",
+                "gravatar_id": "",
+                "url": "https://api.github.com/users/gaganshera",
+                "html_url": "https://github.com/gaganshera",
+                "followers_url": "https://api.github.com/users/gaganshera/followers",
+                "following_url": "https://api.github.com/users/gaganshera/following{/other_user}",
+                "gists_url": "https://api.github.com/users/gaganshera/gists{/gist_id}",
+                "starred_url": "https://api.github.com/users/gaganshera/starred{/owner}{/repo}",
+                "subscriptions_url": "https://api.github.com/users/gaganshera/subscriptions",
+                "organizations_url": "https://api.github.com/users/gaganshera/orgs",
+                "repos_url": "https://api.github.com/users/gaganshera/repos",
+                "events_url": "https://api.github.com/users/gaganshera/events{/privacy}",
+                "received_events_url": "https://api.github.com/users/gaganshera/received_events",
+                "type": "User",
+                "user_view_type": "public",
+                "site_admin": false
+              },
+              "repo": {
+                "id": 282065361,
+                "node_id": "MDEwOlJlcG9zaXRvcnkyODIwNjUzNjE=",
+                "name": "node-app",
+                "full_name": "gaganshera/node-app",
+                "private": false,
+                "owner": {
+                  "login": "gaganshera",
+                  "id": 7510079,
+                  "node_id": "MDQ6VXNlcjc1MTAwNzk=",
+                  "avatar_url": "https://avatars.githubusercontent.com/u/7510079?v=4",
+                  "gravatar_id": "",
+                  "url": "https://api.github.com/users/gaganshera",
+                  "html_url": "https://github.com/gaganshera",
+                  "followers_url": "https://api.github.com/users/gaganshera/followers",
+                  "following_url": "https://api.github.com/users/gaganshera/following{/other_user}",
+                  "gists_url": "https://api.github.com/users/gaganshera/gists{/gist_id}",
+                  "starred_url": "https://api.github.com/users/gaganshera/starred{/owner}{/repo}",
+                  "subscriptions_url": "https://api.github.com/users/gaganshera/subscriptions",
+                  "organizations_url": "https://api.github.com/users/gaganshera/orgs",
+                  "repos_url": "https://api.github.com/users/gaganshera/repos",
+                  "events_url": "https://api.github.com/users/gaganshera/events{/privacy}",
+                  "received_events_url": "https://api.github.com/users/gaganshera/received_events",
+                  "type": "User",
+                  "user_view_type": "public",
+                  "site_admin": false
+                },
+                "html_url": "https://github.com/gaganshera/node-app",
+                "description": null,
+                "fork": false,
+                "url": "https://api.github.com/repos/gaganshera/node-app",
+                "forks_url": "https://api.github.com/repos/gaganshera/node-app/forks",
+                "keys_url": "https://api.github.com/repos/gaganshera/node-app/keys{/key_id}",
+                "collaborators_url": "https://api.github.com/repos/gaganshera/node-app/collaborators{/collaborator}",
+                "teams_url": "https://api.github.com/repos/gaganshera/node-app/teams",
+                "hooks_url": "https://api.github.com/repos/gaganshera/node-app/hooks",
+                "issue_events_url": "https://api.github.com/repos/gaganshera/node-app/issues/events{/number}",
+                "events_url": "https://api.github.com/repos/gaganshera/node-app/events",
+                "assignees_url": "https://api.github.com/repos/gaganshera/node-app/assignees{/user}",
+                "branches_url": "https://api.github.com/repos/gaganshera/node-app/branches{/branch}",
+                "tags_url": "https://api.github.com/repos/gaganshera/node-app/tags",
+                "blobs_url": "https://api.github.com/repos/gaganshera/node-app/git/blobs{/sha}",
+                "git_tags_url": "https://api.github.com/repos/gaganshera/node-app/git/tags{/sha}",
+                "git_refs_url": "https://api.github.com/repos/gaganshera/node-app/git/refs{/sha}",
+                "trees_url": "https://api.github.com/repos/gaganshera/node-app/git/trees{/sha}",
+                "statuses_url": "https://api.github.com/repos/gaganshera/node-app/statuses/{sha}",
+                "languages_url": "https://api.github.com/repos/gaganshera/node-app/languages",
+                "stargazers_url": "https://api.github.com/repos/gaganshera/node-app/stargazers",
+                "contributors_url": "https://api.github.com/repos/gaganshera/node-app/contributors",
+                "subscribers_url": "https://api.github.com/repos/gaganshera/node-app/subscribers",
+                "subscription_url": "https://api.github.com/repos/gaganshera/node-app/subscription",
+                "commits_url": "https://api.github.com/repos/gaganshera/node-app/commits{/sha}",
+                "git_commits_url": "https://api.github.com/repos/gaganshera/node-app/git/commits{/sha}",
+                "comments_url": "https://api.github.com/repos/gaganshera/node-app/comments{/number}",
+                "issue_comment_url": "https://api.github.com/repos/gaganshera/node-app/issues/comments{/number}",
+                "contents_url": "https://api.github.com/repos/gaganshera/node-app/contents/{+path}",
+                "compare_url": "https://api.github.com/repos/gaganshera/node-app/compare/{base}...{head}",
+                "merges_url": "https://api.github.com/repos/gaganshera/node-app/merges",
+                "archive_url": "https://api.github.com/repos/gaganshera/node-app/{archive_format}{/ref}",
+                "downloads_url": "https://api.github.com/repos/gaganshera/node-app/downloads",
+                "issues_url": "https://api.github.com/repos/gaganshera/node-app/issues{/number}",
+                "pulls_url": "https://api.github.com/repos/gaganshera/node-app/pulls{/number}",
+                "milestones_url": "https://api.github.com/repos/gaganshera/node-app/milestones{/number}",
+                "notifications_url": "https://api.github.com/repos/gaganshera/node-app/notifications{?since,all,participating}",
+                "labels_url": "https://api.github.com/repos/gaganshera/node-app/labels{/name}",
+                "releases_url": "https://api.github.com/repos/gaganshera/node-app/releases{/id}",
+                "deployments_url": "https://api.github.com/repos/gaganshera/node-app/deployments",
+                "created_at": "2020-07-23T22:04:49Z",
+                "updated_at": "2025-08-30T23:28:29Z",
+                "pushed_at": "2025-09-07T22:34:34Z",
+                "git_url": "git://github.com/gaganshera/node-app.git",
+                "ssh_url": "git@github.com:gaganshera/node-app.git",
+                "clone_url": "https://github.com/gaganshera/node-app.git",
+                "svn_url": "https://github.com/gaganshera/node-app",
+                "homepage": null,
+                "size": 290,
+                "stargazers_count": 0,
+                "watchers_count": 0,
+                "language": "JavaScript",
+                "has_issues": true,
+                "has_projects": true,
+                "has_downloads": true,
+                "has_wiki": true,
+                "has_pages": false,
+                "has_discussions": false,
+                "forks_count": 1,
+                "mirror_url": null,
+                "archived": false,
+                "disabled": false,
+                "open_issues_count": 2,
+                "license": null,
+                "allow_forking": true,
+                "is_template": false,
+                "web_commit_signoff_required": false,
+                "topics": [],
+                "visibility": "public",
+                "forks": 1,
+                "open_issues": 2,
+                "watchers": 0,
+                "default_branch": "master",
+                "allow_squash_merge": true,
+                "allow_merge_commit": true,
+                "allow_rebase_merge": true,
+                "allow_auto_merge": false,
+                "delete_branch_on_merge": false,
+                "allow_update_branch": false,
+                "use_squash_pr_title_as_default": false,
+                "squash_merge_commit_message": "COMMIT_MESSAGES",
+                "squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+                "merge_commit_message": "PR_TITLE",
+                "merge_commit_title": "MERGE_MESSAGE"
+              }
+            },
+            "_links": {
+              "self": {
+                "href": "https://api.github.com/repos/gaganshera/node-app/pulls/18"
+              },
+              "html": {
+                "href": "https://github.com/gaganshera/node-app/pull/18"
+              },
+              "issue": {
+                "href": "https://api.github.com/repos/gaganshera/node-app/issues/18"
+              },
+              "comments": {
+                "href": "https://api.github.com/repos/gaganshera/node-app/issues/18/comments"
+              },
+              "review_comments": {
+                "href": "https://api.github.com/repos/gaganshera/node-app/pulls/18/comments"
+              },
+              "review_comment": {
+                "href": "https://api.github.com/repos/gaganshera/node-app/pulls/comments{/number}"
+              },
+              "commits": {
+                "href": "https://api.github.com/repos/gaganshera/node-app/pulls/18/commits"
+              },
+              "statuses": {
+                "href": "https://api.github.com/repos/gaganshera/node-app/statuses/e248c840026b2e0989dfc42c67f6f4a31f34ee82"
+              }
+            },
+            "author_association": "OWNER",
+            "auto_merge": null,
+            "active_lock_reason": null,
+            "merged": false,
+            "mergeable": true,
+            "rebaseable": false,
+            "mergeable_state": "unstable",
+            "merged_by": null,
+            "comments": 0,
+            "review_comments": 0,
+            "maintainer_can_modify": false,
+            "commits": 2,
+            "additions": 6,
+            "deletions": 5,
+            "changed_files": 2
+          },
+          "repository": {
+            "id": 282065361,
+            "node_id": "MDEwOlJlcG9zaXRvcnkyODIwNjUzNjE=",
+            "name": "node-app",
+            "full_name": "gaganshera/node-app",
+            "private": false,
+            "owner": {
+              "login": "gaganshera",
+              "id": 7510079,
+              "node_id": "MDQ6VXNlcjc1MTAwNzk=",
+              "avatar_url": "https://avatars.githubusercontent.com/u/7510079?v=4",
+              "gravatar_id": "",
+              "url": "https://api.github.com/users/gaganshera",
+              "html_url": "https://github.com/gaganshera",
+              "followers_url": "https://api.github.com/users/gaganshera/followers",
+              "following_url": "https://api.github.com/users/gaganshera/following{/other_user}",
+              "gists_url": "https://api.github.com/users/gaganshera/gists{/gist_id}",
+              "starred_url": "https://api.github.com/users/gaganshera/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/gaganshera/subscriptions",
+              "organizations_url": "https://api.github.com/users/gaganshera/orgs",
+              "repos_url": "https://api.github.com/users/gaganshera/repos",
+              "events_url": "https://api.github.com/users/gaganshera/events{/privacy}",
+              "received_events_url": "https://api.github.com/users/gaganshera/received_events",
+              "type": "User",
+              "user_view_type": "public",
+              "site_admin": false
+            },
+            "html_url": "https://github.com/gaganshera/node-app",
+            "description": null,
+            "fork": false,
+            "url": "https://api.github.com/repos/gaganshera/node-app",
+            "forks_url": "https://api.github.com/repos/gaganshera/node-app/forks",
+            "keys_url": "https://api.github.com/repos/gaganshera/node-app/keys{/key_id}",
+            "collaborators_url": "https://api.github.com/repos/gaganshera/node-app/collaborators{/collaborator}",
+            "teams_url": "https://api.github.com/repos/gaganshera/node-app/teams",
+            "hooks_url": "https://api.github.com/repos/gaganshera/node-app/hooks",
+            "issue_events_url": "https://api.github.com/repos/gaganshera/node-app/issues/events{/number}",
+            "events_url": "https://api.github.com/repos/gaganshera/node-app/events",
+            "assignees_url": "https://api.github.com/repos/gaganshera/node-app/assignees{/user}",
+            "branches_url": "https://api.github.com/repos/gaganshera/node-app/branches{/branch}",
+            "tags_url": "https://api.github.com/repos/gaganshera/node-app/tags",
+            "blobs_url": "https://api.github.com/repos/gaganshera/node-app/git/blobs{/sha}",
+            "git_tags_url": "https://api.github.com/repos/gaganshera/node-app/git/tags{/sha}",
+            "git_refs_url": "https://api.github.com/repos/gaganshera/node-app/git/refs{/sha}",
+            "trees_url": "https://api.github.com/repos/gaganshera/node-app/git/trees{/sha}",
+            "statuses_url": "https://api.github.com/repos/gaganshera/node-app/statuses/{sha}",
+            "languages_url": "https://api.github.com/repos/gaganshera/node-app/languages",
+            "stargazers_url": "https://api.github.com/repos/gaganshera/node-app/stargazers",
+            "contributors_url": "https://api.github.com/repos/gaganshera/node-app/contributors",
+            "subscribers_url": "https://api.github.com/repos/gaganshera/node-app/subscribers",
+            "subscription_url": "https://api.github.com/repos/gaganshera/node-app/subscription",
+            "commits_url": "https://api.github.com/repos/gaganshera/node-app/commits{/sha}",
+            "git_commits_url": "https://api.github.com/repos/gaganshera/node-app/git/commits{/sha}",
+            "comments_url": "https://api.github.com/repos/gaganshera/node-app/comments{/number}",
+            "issue_comment_url": "https://api.github.com/repos/gaganshera/node-app/issues/comments{/number}",
+            "contents_url": "https://api.github.com/repos/gaganshera/node-app/contents/{+path}",
+            "compare_url": "https://api.github.com/repos/gaganshera/node-app/compare/{base}...{head}",
+            "merges_url": "https://api.github.com/repos/gaganshera/node-app/merges",
+            "archive_url": "https://api.github.com/repos/gaganshera/node-app/{archive_format}{/ref}",
+            "downloads_url": "https://api.github.com/repos/gaganshera/node-app/downloads",
+            "issues_url": "https://api.github.com/repos/gaganshera/node-app/issues{/number}",
+            "pulls_url": "https://api.github.com/repos/gaganshera/node-app/pulls{/number}",
+            "milestones_url": "https://api.github.com/repos/gaganshera/node-app/milestones{/number}",
+            "notifications_url": "https://api.github.com/repos/gaganshera/node-app/notifications{?since,all,participating}",
+            "labels_url": "https://api.github.com/repos/gaganshera/node-app/labels{/name}",
+            "releases_url": "https://api.github.com/repos/gaganshera/node-app/releases{/id}",
+            "deployments_url": "https://api.github.com/repos/gaganshera/node-app/deployments",
+            "created_at": "2020-07-23T22:04:49Z",
+            "updated_at": "2025-08-30T23:28:29Z",
+            "pushed_at": "2025-09-07T22:34:34Z",
+            "git_url": "git://github.com/gaganshera/node-app.git",
+            "ssh_url": "git@github.com:gaganshera/node-app.git",
+            "clone_url": "https://github.com/gaganshera/node-app.git",
+            "svn_url": "https://github.com/gaganshera/node-app",
+            "homepage": null,
+            "size": 290,
+            "stargazers_count": 0,
+            "watchers_count": 0,
+            "language": "JavaScript",
+            "has_issues": true,
+            "has_projects": true,
+            "has_downloads": true,
+            "has_wiki": true,
+            "has_pages": false,
+            "has_discussions": false,
+            "forks_count": 1,
+            "mirror_url": null,
+            "archived": false,
+            "disabled": false,
+            "open_issues_count": 2,
+            "license": null,
+            "allow_forking": true,
+            "is_template": false,
+            "web_commit_signoff_required": false,
+            "topics": [],
+            "visibility": "public",
+            "forks": 1,
+            "open_issues": 2,
+            "watchers": 0,
+            "default_branch": "master"
+          },
+          "sender": {
+            "login": "gaganshera",
+            "id": 7510079,
+            "node_id": "MDQ6VXNlcjc1MTAwNzk=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/7510079?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/gaganshera",
+            "html_url": "https://github.com/gaganshera",
+            "followers_url": "https://api.github.com/users/gaganshera/followers",
+            "following_url": "https://api.github.com/users/gaganshera/following{/other_user}",
+            "gists_url": "https://api.github.com/users/gaganshera/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/gaganshera/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/gaganshera/subscriptions",
+            "organizations_url": "https://api.github.com/users/gaganshera/orgs",
+            "repos_url": "https://api.github.com/users/gaganshera/repos",
+            "events_url": "https://api.github.com/users/gaganshera/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/gaganshera/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          }
+        },
+        "headers": {
+          "host": "chromiumbackup10.app.n8n.cloud",
+          "user-agent": "GitHub-Hookshot/bebe1c7",
+          "content-length": "22099",
+          "accept": "*/*",
+          "accept-encoding": "gzip, br",
+          "cdn-loop": "cloudflare; loops=1; subreqs=1",
+          "cf-connecting-ip": "140.82.115.46",
+          "cf-ew-via": "15",
+          "cf-ipcountry": "US",
+          "cf-ray": "97b9ad64220ad143-IAD",
+          "cf-visitor": "{\"scheme\":\"https\"}",
+          "cf-worker": "n8n.cloud",
+          "content-type": "application/json",
+          "x-forwarded-for": "140.82.115.46, 172.70.38.198",
+          "x-forwarded-host": "chromiumbackup10.app.n8n.cloud",
+          "x-forwarded-port": "443",
+          "x-forwarded-proto": "https",
+          "x-forwarded-server": "traefik-prod-users-gwc-24-5cd9cc5d7f-49f65",
+          "x-github-delivery": "e6974330-8c3a-11f0-836a-8e44433b9319",
+          "x-github-event": "pull_request",
+          "x-github-hook-id": "568379618",
+          "x-github-hook-installation-target-id": "282065361",
+          "x-github-hook-installation-target-type": "repository",
+          "x-is-trusted": "yes",
+          "x-real-ip": "140.82.115.46"
+        },
+        "query": {}
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "53b3abfb5fa2cba6145b8c49a35388466773d996d4f5acba0b19c5cf42739d60"
+  }
+}
